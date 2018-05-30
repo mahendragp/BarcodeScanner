@@ -6,8 +6,8 @@
 //  Copyright © 2018 Mahendra. All rights reserved.
 //
 
-import UIKit
 import AVFoundation
+import UIKit
 
 /// ErrorCode enum describe the errors that may occure
 ///
@@ -29,8 +29,8 @@ public enum ErrorCode {
 
 /// ScanningError struct to combine error with code
 public struct ScanningError: Error {
-    let code: ErrorCode
-    let msg: String
+    public let code: ErrorCode
+    public let msg: String
 }
 
 /// Scanned item
@@ -208,6 +208,33 @@ extension MGPScannerViewController {
     
     fileprivate func setupView() {
         
+        AVCaptureDevice.requestAccess(for: .video) { (isGranted) in
+            
+            DispatchQueue.main.async {
+                
+                if !isGranted {
+                    let error = ScanningError(code: .cameraPermissionNotGranted, msg: "CameraPermissionIsNotGranted")
+                    if self.isModal() {
+                        self.dismiss(animated: true) {
+                            self.delegate?.cameraPermission(error: error);
+                        }
+                    } else {
+                        self.navigationController?.popViewController(animated: true)
+                        self.delegate?.cameraPermission(error: error)
+                    }
+                    
+                    return
+                } else {
+                    self.setUpViewAfterCameraAccess()
+                }
+            }
+        }
+    }
+    
+    //-----------------------------------------------------
+    
+    fileprivate func setUpViewAfterCameraAccess() {
+        
         var err: ScanningError?
         
         let auth = AVCaptureDevice.authorizationStatus(for: .video)
@@ -281,7 +308,7 @@ extension MGPScannerViewController {
         }
         
         do {
-           
+            
             let input = try AVCaptureDeviceInput(device: capureDevice)
             captureSession.addInput(input)
             
